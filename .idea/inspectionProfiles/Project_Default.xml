@@ -1,0 +1,35 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="VulnerableLibrariesLocal" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="isIgnoringEnabled" value="true" />
+      <option name="ignoredModules">
+        <list>
+          <option value="genaiTesting" />
+          <option value="genaiTesting" />
+          <option value="genaiTesting" />
+          <option value="genaiTesting" />
+          <option value="genaiTesting" />
+        </list>
+      </option>
+      <option name="ignoredPackages">
+        <list>
+          <option value="org.apache.commons:commons-compress:1.25.0" />
+          <option value="org.htmlunit:neko-htmlunit:3.9.0" />
+          <option value="com.google.protobuf:protobuf-java:3.19.2" />
+          <option value="edu.stanford.nlp:stanford-corenlp:4.5.0" />
+          <option value="org.apache.commons:commons-collections4:4.1" />
+        </list>
+      </option>
+      <option name="ignoredReasons">
+        <list>
+          <option value="Not exploitable" />
+          <option value="Not exploitable" />
+          <option value="Not exploitable" />
+          <option value="Not exploitable" />
+          <option value="Not exploitable" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
