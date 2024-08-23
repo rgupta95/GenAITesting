@@ -10,8 +10,8 @@ import org.junit.runner.RunWith;
         plugin={"pretty"}   ,
         features = {"src/test/resources/features/GenAIUseCases.feature"},
         glue ="com.ideathon.xoriant.stepdefinitions",
-        monochrome = true,
-        tags="@test"
+        monochrome = true
+       // tags="@test"
 )
 public class CucumberRunnerTest {
 

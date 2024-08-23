@@ -2,30 +2,21 @@ package com.ideathon.xoriant.stepdefinitions;
 
 import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.loadDocument;
 import static dev.langchain4j.data.message.UserMessage.userMessage;
-//import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_3_5_TURBO;
-
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_3_5_TURBO;
 import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4;
 import static java.time.Duration.ofSeconds;
 import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.*;
-
-import dev.langchain4j.model.openai.OpenAiChatModelName;
-import dev.langchain4j.model.openai.OpenAiModelName.*;
 import dev.langchain4j.model.embedding.onnx.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
-import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
-import org.deeplearning4j.models.embeddings.wordvectors.WordVectors;
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.ops.transforms.Transforms;
-import edu.stanford.nlp.pipeline.*;
-import edu.stanford.nlp.ling.*;
-import edu.stanford.nlp.util.CoreMap;
-
-import java.io.File;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.*;
 import java.nio.file.Paths;
-
 import com.ideathon.xoriant.Constants;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
@@ -35,182 +26,96 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.TokenWindowChatMemory;
-//import dev.langchain4j.model.embedding.AllMiniLmL6V2EmbeddingModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiModelName;
 import dev.langchain4j.model.openai.OpenAiTokenizer;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
-import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import net.serenitybdd.core.Serenity;
-
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 public class StepDefinitions {
+    public  Properties dataProp = null;
+    private static final StandardAnalyzer ANALYZER = new StandardAnalyzer();
+
+    private static final List<String> SENSITIVE_TERMS = Arrays.asList("bomb", "explosive", "terror","abusive");
 
     private static final Logger logger = LoggerFactory.getLogger(StepDefinitions.class);
     EmbeddingModel embeddingModel = new AllMiniLmL6V2EmbeddingModel();
-    private static WordVectors wordVectors;
-    private static StanfordCoreNLP pipeline;
-    static {
-        try {
-            wordVectors = WordVectorSerializer.loadStaticModel(new File("src/test/resources/glove.6B.100d.txt"));
-        } catch (Exception e) {
-            logger.atError();
+
+@And("I load the data provider {string} file")
+    public void getResponseFromFile(String propFileName) throws IOException {
+    dataProp = new Properties();
+        FileInputStream fs = new FileInputStream(
+                System.getProperty("user.dir") + "//src//test//resources//Data//" +
+                        propFileName + ".properties");
+         dataProp.load(fs);
+}
+    @Then("verify the accuracy of LLM response generated with expected {string} and actual {string} response")
+    public  String verify_the_accuracy_of_LLM_response(String expected, String actual) {
+        if (isSensitive(dataProp.getProperty(expected)) || isSensitive(dataProp.getProperty(actual))) {
+            return "I'm sorry, but I can't assist with that request.";
         }
-        Properties props = new Properties();
-        props.setProperty("annotators", "tokenize,ssplit,pos,lemma,ner,parse,depparse");
-        pipeline = new StanfordCoreNLP(props);
+        Map<String, Double> vectorA = textToVector(dataProp.getProperty(expected));
+        Map<String, Double> vectorB = textToVector(dataProp.getProperty(actual));
+        double similarity = calculateCosineSimilarity(vectorA, vectorB);
+        System.out.println("Similarity: " + similarity * 100.0 + "%");
+        return String.format("Similarity: %.2f%%", similarity * 100.0); // Convert similarity to percentage
     }
-
-    @Then("verify the accuracy of LLM response generated with response criteria having values like matching keywords {string} , minimum length {string}, punctuation {string} and expected response {string}")
-    public static boolean verify_the_accuracy_of_LLM_response(String keywords,String minLength, String punctuation, String expectedResponse) {
-        ResponseCriteria criteria = new ResponseCriteria(
-                Arrays.asList(keywords.split("\\s+")),
-              // Minimum length
-                Integer.parseInt(minLength),
-              // Ending punctuation
-                Arrays.asList(punctuation.split("\\s+")),
-                expectedResponse
-        );
-        AiMessage aiMessage;
-        aiMessage = Serenity.sessionVariableCalled(Constants.AI_MESSAGE_RESPONSE);
-        String response = aiMessage.text();
-        if (response == null || response.isEmpty()) {
-            return false;
-        }
-        // Normalize the response (e.g., convert to lowercase, remove punctuation)
-        String normalizedResponse = normalizeText(response);
-
-        // Convert response to lowercase for case-insensitive comparison
-        String lowerCaseResponse = response.toLowerCase();
-        // Count how many keywords are found in the response
-        long matchedKeywordsCount = criteria.getRequiredKeywords().stream().filter(keyword -> {
-            String lowerCaseKeyword = keyword.toLowerCase();
-         //   boolean containsKeyword = lowerCaseResponse.contains(lowerCaseKeyword);
-            boolean containsKeyword = normalizedResponse.contains(lowerCaseKeyword);
-            System.out.println("Checking keyword '" + keyword + "' in response: " + containsKeyword);
-            return containsKeyword;
-        }).count();
-
-        // Calculate the matching percentage
-        double matchingPercentage = (double) matchedKeywordsCount / criteria.getRequiredKeywords().size() * 100;
-        logger.info("Matching Percentage: " + matchingPercentage + "%");
-        System.out.println("Matching Percentage: " + matchingPercentage + "%");
-        // Set a threshold for the matching percentage (e.g., 70%)
-        double threshold = 70.0;
-        boolean meetsKeywordThreshold = matchingPercentage >= threshold;
-        logger.info("Meets keyword threshold (" + threshold + "%): " + meetsKeywordThreshold);
-        System.out.println("Meets keyword threshold (" + threshold + "%): " + meetsKeywordThreshold);
-
-//
-        // Check for minimum length
-        boolean meetsMinLength = response.length() >= criteria.getMinLength();
-
-        // Check for proper sentence endings
-        boolean hasProperEndings = criteria.getEndingPunctuation().stream().anyMatch(response::endsWith);
-
-        // Check semantic similarity
-        boolean meetsSemanticSimilarity = checkSemanticSimilarity(response, criteria.getExpectedResponse()) > 0.75;
-
-        // Check grammatical correctness
-        boolean isGrammaticallyCorrect = checkGrammar(response);
-
-        // Validate response based on criteria
-        return meetsKeywordThreshold && meetsMinLength && hasProperEndings && meetsSemanticSimilarity && isGrammaticallyCorrect;
+    // Check if the text contains sensitive terms
+    private boolean isSensitive(String text) {
+        return SENSITIVE_TERMS.stream().anyMatch(term -> text.toLowerCase().contains(term));
     }
-    private static String normalizeText(String text) {
-        // Example normalization: Convert to lowercase and remove punctuation
-        return text.toLowerCase().replaceAll("[^a-z0-9 ]", "").trim();
-    }
-
-    private static double checkSemanticSimilarity(String response, String expectedResponse) {
-        INDArray responseVector = getSentenceVector(response);
-        INDArray expectedVector = getSentenceVector(expectedResponse);
-
-        if (responseVector == null || expectedVector == null) {
-            return 0.0;
-        }
-
-        return Transforms.cosineSim(responseVector, expectedVector);
-    }
-
-    private static INDArray getSentenceVector(String sentence) {
-        String[] words = sentence.split("\\s+");
-        INDArray vector = null;
-
-        for (String word : words) {
-            INDArray wordVector = wordVectors.getWordVectorMatrix(word);
-            if (wordVector != null) {
-                if (vector == null) {
-                    vector = wordVector;
-                } else {
-                    vector.addi(wordVector);
-                }
+    // Convert text to TF-IDF vector (map of term frequencies)
+    private Map<String, Double> textToVector(String text) {
+        Map<String, Double> vector = new HashMap<>();
+        try (TokenStream tokenStream = ANALYZER.tokenStream("field", new StringReader(text))) {
+            CharTermAttribute charTermAttribute = tokenStream.addAttribute(CharTermAttribute.class);
+            tokenStream.reset();
+            while (tokenStream.incrementToken()) {
+                String term = charTermAttribute.toString();
+                vector.put(term, vector.getOrDefault(term, 0.0) + 1.0);
             }
+            tokenStream.end();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        if (vector != null) {
-            vector.divi(words.length);
-        }
-
         return vector;
     }
 
-    private static boolean checkGrammar(String response) {
-        Annotation document = new Annotation(response);
-        pipeline.annotate(document);
-        List<CoreMap> sentences = document.get(CoreAnnotations.SentencesAnnotation.class);
-        for (CoreMap sentence : sentences) {
-            for (CoreLabel token : sentence.get(CoreAnnotations.TokensAnnotation.class)) {
-                String pos = token.get(CoreAnnotations.PartOfSpeechAnnotation.class);
-                if (pos.equals("UH")) {
-                    return false;
-                }
-            }
+    // Calculate cosine similarity between two term frequency vectors
+    private double calculateCosineSimilarity(Map<String, Double> vectorA, Map<String, Double> vectorB) {
+        Set<String> allTerms = new HashSet<>(vectorA.keySet());
+        allTerms.addAll(vectorB.keySet());
+
+        double dotProduct = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+
+        for (String term : allTerms) {
+            double freqA = vectorA.getOrDefault(term, 0.0);
+            double freqB = vectorB.getOrDefault(term, 0.0);
+            dotProduct += freqA * freqB;
+            normA += freqA * freqA;
+            normB += freqB * freqB;
         }
-        return true;
+
+        normA = Math.sqrt(normA);
+        normB = Math.sqrt(normB);
+
+        if (normA == 0 || normB == 0) return 0.0;
+
+        return dotProduct / (normA * normB);
     }
 
-    public static class ResponseCriteria {
-        private final List<String> requiredKeywords;
-        private final int minLength;
-        private final List<String> endingPunctuation;
-        private final String expectedResponse;
-
-        public ResponseCriteria(List<String> requiredKeywords, int minLength, List<String> endingPunctuation, String expectedResponse) {
-            this.requiredKeywords = requiredKeywords;
-            this.minLength = minLength;
-            this.endingPunctuation = endingPunctuation;
-            this.expectedResponse = expectedResponse;
-        }
-
-        public List<String> getRequiredKeywords() {
-            return requiredKeywords;
-        }
-
-        public int getMinLength() {
-            return minLength;
-        }
-
-        public List<String> getEndingPunctuation() {
-            return endingPunctuation;
-        }
-
-        public String getExpectedResponse() {
-            return expectedResponse;
-        }
-    }
     @Given("Generate prompt template with variable {word} about {word}")
     public void prompt_template_with_getVariable(String arg1, String arg2) {
         PromptTemplate promptTemplate = PromptTemplate.from("Tell me something  {{adjective}}  about {{content}}..");
@@ -264,14 +169,10 @@ public class StepDefinitions {
 
     @Then("verify the LLM response with expected response {string}")
     public void verify_chat_response_contains_(String expectedOutput) {
-
         AiMessage aiMessage;
         aiMessage = Serenity.sessionVariableCalled(Constants.AI_MESSAGE_RESPONSE);
-
         assertThat(aiMessage.text()).contains(expectedOutput);
     }
-
-
 
     @Given("I created chat memory with LLM model")
     public void generate_chat_memory() {
