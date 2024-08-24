@@ -1,4 +1,4 @@
-package com.ideathon.xoriant;
+package com.idea.genai;
 
 
 import io.cucumber.junit.CucumberOptions;
@@ -8,13 +8,12 @@ import org.junit.runner.RunWith;
 @RunWith(CucumberWithSerenity.class)
 @CucumberOptions(
         plugin={"pretty"}   ,
-        features = {"src/test/resources/features/GenAIUseCases.feature"},
-        glue ="com.ideathon.xoriant.stepdefinitions",
+        features = {"src/test/resources/features"},
+        glue ="com.idea.genai.stepdefinitions",
         monochrome = true
-       // tags="@test"
+
+
 )
 public class CucumberRunnerTest {
-
-
 
 }
