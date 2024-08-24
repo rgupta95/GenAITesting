@@ -37,14 +37,14 @@ git clone https://github.com/rgupta95/GenAITesting.git
 cd GenAITesting
 Build the Project
 
-bash
-Copy code
+
+
 mvn clean install
 Run the Tests
 
 ![img.png](img.png)
-bash
-Copy code
+
+
 mvn test
 Usage
 After building the project, you can run tests to evaluate LLM accuracy. The project includes sample test cases and configurations that can be customized according to your needs.
