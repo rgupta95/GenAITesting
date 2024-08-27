@@ -1,10 +1,11 @@
 Generative AI Testing Project
 
-Overview
-
+**Overview**
+-------------
 Welcome to the Generative AI Testing Project! This project demonstrates how to test the accuracy of different Large Language Models (LLMs) using Java. It leverages various technologies to provide a robust framework for evaluating LLMs.
 
-Tech Stack
+**Tech Stack**
+----------
 
 Java: The primary programming language used for development.
 
@@ -14,7 +15,8 @@ Serenity: A testing framework to support behavior-driven development (BDD) and a
 
 Maven: A build management tool used for dependency management and project build.
 
-Explanation
+**Explanation**
+--------------
 
 textToVector(String text):
 
@@ -24,25 +26,28 @@ calculateCosineSimilarity(Map<String, Double> vectorA, Map<String, Double> vecto
 
 Calculates cosine similarity between two term frequency vectors, ensuring that both vectors have the same dimensionality.
 
-Handling Edge Cases:
+**Handling Edge Cases**
+----------------------
 
 Checks for zero norms to avoid division by zero errors.
 
-Objectives
-
+**Objectives**
+-------------
 The main objective of this project is to offer insights and tools for assessing the accuracy of LLMs. This includes evaluating their responses against predefined criteria and generating reports on their performance.
 
-Getting Started
-
+**Getting Started**
+------------------
 To get started with this project, follow these steps:
 
-Prerequisites
+**Prerequisites**
+-----------------
 
 Java Development Kit (JDK): Ensure you have JDK 8 or higher installed.
 
 Maven: Ensure you have Maven 3.6 or higher installed.
 
-Installation
+**Installation**
+---------------
 
 Clone the Repository
 
@@ -64,7 +69,8 @@ Usage
 
 After building the project, you can run tests to evaluate LLM accuracy. The project includes sample test cases and configurations that can be customized according to your needs.
 
-Contributing
+**Contributing**
+---------------
 
 Contributions are welcome! If you would like to contribute to this project, please follow these steps:
 
@@ -84,9 +90,10 @@ Please ensure that your code adheres to the project's coding standards and inclu
 
 [MIT License] (LICENSE)
 
-This project is licensed under the GPL v3 License. See the LICENSE file for more details.
+This project is licensed under the MIT License. See the LICENSE file for more details.
 
-Contact
+**Contact**
+----------
 
 For any questions or feedback, please contact:
 
